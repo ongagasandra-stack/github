@@ -1,11 +1,11 @@
-const { Database } = require('node-sqlite3-wasm');
+const Database = require('better-sqlite3');
 const path = require('path');
 
 const dbPath = path.join(__dirname, '..', 'farmstore.db');
 const db = new Database(dbPath);
 
 function initializeDatabase() {
-  db.run(`
+  db.exec(`
     CREATE TABLE IF NOT EXISTS storage_facilities (
       id TEXT PRIMARY KEY,
       owner_name TEXT NOT NULL,
@@ -24,10 +24,8 @@ function initializeDatabase() {
       phone TEXT,
       email TEXT,
       created_at TEXT NOT NULL
-    )
-  `);
+    );
 
-  db.run(`
     CREATE TABLE IF NOT EXISTS bookings (
       id TEXT PRIMARY KEY,
       farmer_name TEXT NOT NULL,
@@ -38,22 +36,20 @@ function initializeDatabase() {
       start_date TEXT NOT NULL,
       end_date TEXT NOT NULL,
       status TEXT DEFAULT 'pending',
-      created_at TEXT NOT NULL
-    )
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (facility_id) REFERENCES storage_facilities(id)
+    );
   `);
 
-  const count = db.get('SELECT COUNT(*) as cnt FROM storage_facilities');
+  const count = db.prepare('SELECT COUNT(*) as cnt FROM storage_facilities').get();
   if (count.cnt === 0) {
-    const insertFacility = (item) => db.run(`
+    const insert = db.prepare(`
       INSERT INTO storage_facilities
         (id, owner_name, facility_name, location, county, latitude, longitude,
          capacity_tons, available_space_tons, price_per_day, price_per_week,
          price_per_month, produce_types, description, phone, email, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `, [item.id, item.owner_name, item.facility_name, item.location, item.county,
-        item.latitude, item.longitude, item.capacity_tons, item.available_space_tons,
-        item.price_per_day, item.price_per_week, item.price_per_month,
-        item.produce_types, item.description, item.phone, item.email, item.created_at]);
+    `);
 
     const facilities = [
       {
@@ -70,7 +66,7 @@ function initializeDatabase() {
         price_per_week: 15000,
         price_per_month: 50000,
         produce_types: JSON.stringify(['Vegetables', 'Fruits', 'Tea']),
-        description: 'State-of-the-art cold storage facility in the heart of Nairobi\'s Westlands. Equipped with temperature control systems ranging from 2°C to 15°C, 24/7 security with CCTV, forklift access, and easy Waiyaki Way highway access for transport logistics.',
+        description: "State-of-the-art cold storage facility in the heart of Nairobi's Westlands. Equipped with temperature control systems ranging from 2°C to 15°C, 24/7 security with CCTV, forklift access, and easy Waiyaki Way highway access for transport logistics.",
         phone: '+254 712 345 678',
         email: 'james.mwangi@westlandscold.co.ke',
         created_at: new Date().toISOString()
@@ -203,21 +199,26 @@ function initializeDatabase() {
         price_per_week: 9000,
         price_per_month: 30000,
         produce_types: JSON.stringify(['Maize', 'Wheat', 'Sunflower']),
-        description: 'Kenya\'s breadbasket region premier storage hub. Trans Nzoia Grain Hub offers the most affordable bulk grain storage in the North Rift with modern hermetic silo technology, professional pest management, and grain quality preservation services. Serving over 2,000 farmers annually.',
+        description: "Kenya's breadbasket region premier storage hub. Trans Nzoia Grain Hub offers the most affordable bulk grain storage in the North Rift with modern hermetic silo technology, professional pest management, and grain quality preservation services. Serving over 2,000 farmers annually.",
         phone: '+254 788 012 345',
         email: 'sarah.wekesa@transnzoiagrain.co.ke',
         created_at: new Date().toISOString()
       }
     ];
 
-    db.run('BEGIN');
-    try {
-      for (const item of facilities) insertFacility(item);
-      db.run('COMMIT');
-    } catch (e) {
-      db.run('ROLLBACK');
-      throw e;
-    }
+    const insertMany = db.transaction((items) => {
+      for (const item of items) {
+        insert.run(
+          item.id, item.owner_name, item.facility_name, item.location,
+          item.county, item.latitude, item.longitude, item.capacity_tons,
+          item.available_space_tons, item.price_per_day, item.price_per_week,
+          item.price_per_month, item.produce_types, item.description,
+          item.phone, item.email, item.created_at
+        );
+      }
+    });
+
+    insertMany(facilities);
     console.log('Database seeded with 8 storage facilities.');
   }
 
