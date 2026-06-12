@@ -35,7 +35,7 @@ function initializeDatabase() {
       quantity_tons REAL NOT NULL,
       start_date TEXT NOT NULL,
       end_date TEXT NOT NULL,
-      status TEXT DEFAULT 'confirmed',
+      status TEXT DEFAULT 'pending',
       created_at TEXT NOT NULL,
       FOREIGN KEY (facility_id) REFERENCES storage_facilities(id)
     );
@@ -65,8 +65,8 @@ function initializeDatabase() {
         price_per_day: 2500,
         price_per_week: 15000,
         price_per_month: 50000,
-        produce_types: JSON.stringify(['Vegetables', 'Fruits', 'Dairy']),
-        description: 'State-of-the-art cold storage facility in the heart of Nairobi\'s Westlands. Equipped with temperature control systems, 24/7 security, and easy highway access for transport.',
+        produce_types: JSON.stringify(['Vegetables', 'Fruits', 'Tea']),
+        description: 'State-of-the-art cold storage facility in the heart of Nairobi\'s Westlands. Equipped with temperature control systems ranging from 2°C to 15°C, 24/7 security with CCTV, forklift access, and easy Waiyaki Way highway access for transport logistics.',
         phone: '+254 712 345 678',
         email: 'james.mwangi@westlandscold.co.ke',
         created_at: new Date().toISOString()
@@ -85,7 +85,7 @@ function initializeDatabase() {
         price_per_week: 11000,
         price_per_month: 38000,
         produce_types: JSON.stringify(['Maize', 'Wheat', 'Barley']),
-        description: 'Large grain storage facility serving the Rift Valley agricultural region. Features fumigation services, grain testing, and bulk handling equipment.',
+        description: 'Large grain storage facility serving the Rift Valley agricultural region. Features professional fumigation services, grain moisture testing, bulk handling equipment with conveyor belts, and easy access to the Nakuru-Nairobi highway for efficient produce movement.',
         phone: '+254 722 456 789',
         email: 'mary.wanjiku@riftvalleygrain.co.ke',
         created_at: new Date().toISOString()
@@ -104,7 +104,7 @@ function initializeDatabase() {
         price_per_week: 13000,
         price_per_month: 42000,
         produce_types: JSON.stringify(['Coffee', 'Tea', 'Potatoes']),
-        description: 'Specialized storage hub near Mount Kenya, designed for high-value produce like coffee and tea. Maintains optimal humidity levels to preserve quality.',
+        description: 'Specialized storage hub at the foot of Mount Kenya, designed specifically for high-value produce like premium Meru coffee and Kenyan tea. Maintains optimal humidity levels between 60-70% and temperature control to preserve quality and prevent spoilage.',
         phone: '+254 733 567 890',
         email: 'peter.gitonga@mtkenyahub.co.ke',
         created_at: new Date().toISOString()
@@ -122,8 +122,8 @@ function initializeDatabase() {
         price_per_day: 1500,
         price_per_week: 9500,
         price_per_month: 32000,
-        produce_types: JSON.stringify(['Rice', 'Vegetables', 'Fish']),
-        description: 'Versatile storage facility near Lake Victoria. Specializes in fresh produce and fish storage with dedicated refrigerated sections and excellent port connections.',
+        produce_types: JSON.stringify(['Rice', 'Vegetables', 'Fruits']),
+        description: 'Versatile storage facility near Lake Victoria, serving the Nyanza farming and fishing communities. Dedicated refrigerated sections maintain freshness, with easy Kisumu port connections for regional distribution. Serves rice farmers from Ahero irrigation scheme.',
         phone: '+254 744 678 901',
         email: 'grace.otieno@lakesidestorage.co.ke',
         created_at: new Date().toISOString()
@@ -142,7 +142,7 @@ function initializeDatabase() {
         price_per_week: 10000,
         price_per_month: 35000,
         produce_types: JSON.stringify(['Maize', 'Wheat', 'Beans']),
-        description: 'The largest grain storage facility in North Rift. Serves thousands of farmers from Uasin Gishu and Trans Nzoia counties with modern silos and drying equipment.',
+        description: 'The largest grain storage facility in North Rift Valley. Serves thousands of farmers from Uasin Gishu and Trans Nzoia counties with modern steel silos, industrial grain drying equipment, and professional pest management. Conveniently located along the Eldoret-Nakuru highway.',
         phone: '+254 755 789 012',
         email: 'daniel.cheruiyot@northriftagri.co.ke',
         created_at: new Date().toISOString()
@@ -161,7 +161,7 @@ function initializeDatabase() {
         price_per_week: 11500,
         price_per_month: 39000,
         produce_types: JSON.stringify(['Beans', 'Maize', 'Fruits']),
-        description: 'Serving Eastern Kenya farmers with quality storage solutions. Offers flexible short-term and long-term storage with competitive pricing and reliable security.',
+        description: 'Serving Eastern Kenya farmers with quality storage solutions since 2018. Specializes in legumes and dry grains with hermetic bag storage options available. Offers flexible short-term (1 day minimum) and long-term storage with competitive pricing and 24/7 reliable security.',
         phone: '+254 766 890 123',
         email: 'agnes.mutua@easternharvest.co.ke',
         created_at: new Date().toISOString()
@@ -180,7 +180,7 @@ function initializeDatabase() {
         price_per_week: 14000,
         price_per_month: 47000,
         produce_types: JSON.stringify(['Coffee', 'Vegetables', 'Fruits']),
-        description: 'Premium fresh produce storage facility along Thika Road. Strategically located for easy access to Nairobi markets, with climate-controlled chambers for fruits and vegetables.',
+        description: 'Premium fresh produce storage facility along Thika Superhighway. Strategically located for easy access to Nairobi markets, with multiple climate-controlled chambers maintaining different temperatures for fruits and vegetables. Serves coffee farmers from the Kiambu cooperative societies.',
         phone: '+254 777 901 234',
         email: 'john.kamau@bluenilefresh.co.ke',
         created_at: new Date().toISOString()
@@ -199,7 +199,7 @@ function initializeDatabase() {
         price_per_week: 9000,
         price_per_month: 30000,
         produce_types: JSON.stringify(['Maize', 'Wheat', 'Sunflower']),
-        description: 'Kenya\'s breadbasket region storage hub. Trans Nzoia Grain Hub offers affordable, bulk grain storage with modern pest management and quality preservation services.',
+        description: 'Kenya\'s breadbasket region premier storage hub. Trans Nzoia Grain Hub offers the most affordable bulk grain storage in the North Rift with modern hermetic silo technology, professional pest management, and grain quality preservation services. Serving over 2,000 farmers annually.',
         phone: '+254 788 012 345',
         email: 'sarah.wekesa@transnzoiagrain.co.ke',
         created_at: new Date().toISOString()
