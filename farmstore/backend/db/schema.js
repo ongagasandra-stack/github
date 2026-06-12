@@ -1,11 +1,11 @@
-const Database = require('better-sqlite3');
+const { Database } = require('node-sqlite3-wasm');
 const path = require('path');
 
 const dbPath = path.join(__dirname, '..', 'farmstore.db');
 const db = new Database(dbPath);
 
 function initializeDatabase() {
-  db.exec(`
+  db.run(`
     CREATE TABLE IF NOT EXISTS storage_facilities (
       id TEXT PRIMARY KEY,
       owner_name TEXT NOT NULL,
@@ -24,8 +24,10 @@ function initializeDatabase() {
       phone TEXT,
       email TEXT,
       created_at TEXT NOT NULL
-    );
+    )
+  `);
 
+  db.run(`
     CREATE TABLE IF NOT EXISTS bookings (
       id TEXT PRIMARY KEY,
       farmer_name TEXT NOT NULL,
@@ -36,20 +38,22 @@ function initializeDatabase() {
       start_date TEXT NOT NULL,
       end_date TEXT NOT NULL,
       status TEXT DEFAULT 'pending',
-      created_at TEXT NOT NULL,
-      FOREIGN KEY (facility_id) REFERENCES storage_facilities(id)
-    );
+      created_at TEXT NOT NULL
+    )
   `);
 
-  const count = db.prepare('SELECT COUNT(*) as cnt FROM storage_facilities').get();
+  const count = db.get('SELECT COUNT(*) as cnt FROM storage_facilities');
   if (count.cnt === 0) {
-    const insert = db.prepare(`
+    const insertFacility = (item) => db.run(`
       INSERT INTO storage_facilities
         (id, owner_name, facility_name, location, county, latitude, longitude,
          capacity_tons, available_space_tons, price_per_day, price_per_week,
          price_per_month, produce_types, description, phone, email, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
+    `, [item.id, item.owner_name, item.facility_name, item.location, item.county,
+        item.latitude, item.longitude, item.capacity_tons, item.available_space_tons,
+        item.price_per_day, item.price_per_week, item.price_per_month,
+        item.produce_types, item.description, item.phone, item.email, item.created_at]);
 
     const facilities = [
       {
@@ -206,19 +210,14 @@ function initializeDatabase() {
       }
     ];
 
-    const insertMany = db.transaction((items) => {
-      for (const item of items) {
-        insert.run(
-          item.id, item.owner_name, item.facility_name, item.location,
-          item.county, item.latitude, item.longitude, item.capacity_tons,
-          item.available_space_tons, item.price_per_day, item.price_per_week,
-          item.price_per_month, item.produce_types, item.description,
-          item.phone, item.email, item.created_at
-        );
-      }
-    });
-
-    insertMany(facilities);
+    db.run('BEGIN');
+    try {
+      for (const item of facilities) insertFacility(item);
+      db.run('COMMIT');
+    } catch (e) {
+      db.run('ROLLBACK');
+      throw e;
+    }
     console.log('Database seeded with 8 storage facilities.');
   }
 
