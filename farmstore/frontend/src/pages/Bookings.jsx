@@ -1,237 +1,259 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import axios from 'axios';
 
-const API = 'http://localhost:3001';
-
-const STATUS_STYLES = {
-  confirmed: { bg: '#DCFCE7', color: '#15803D', label: '✅ Confirmed' },
-  pending: { bg: '#FEF9C3', color: '#A16207', label: '⏳ Pending' },
-  cancelled: { bg: '#FEE2E2', color: '#B91C1C', label: '❌ Cancelled' },
-};
+function StatusBadge({ status }) {
+  const styles = {
+    confirmed: { background: '#DCFCE7', color: '#15803D', border: '1px solid #BBF7D0' },
+    pending:   { background: '#FEF9C3', color: '#A16207', border: '1px solid #FDE68A' },
+    cancelled: { background: '#FEE2E2', color: '#B91C1C', border: '1px solid #FECACA' },
+  };
+  const icons = { confirmed: '✅', pending: '⏳', cancelled: '❌' };
+  const s = styles[status] || styles.pending;
+  return (
+    <span style={{
+      ...s,
+      display: 'inline-flex', alignItems: 'center', gap: 5,
+      padding: '4px 12px', borderRadius: 20, fontSize: '0.78rem', fontWeight: 700,
+      textTransform: 'capitalize',
+    }}>
+      {icons[status] || '•'} {status}
+    </span>
+  );
+}
 
 function formatDate(dateStr) {
-  if (!dateStr) return '-';
+  if (!dateStr) return '—';
   const d = new Date(dateStr);
   return d.toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-function getDurationDays(start, end) {
-  if (!start || !end) return 0;
+function getDays(start, end) {
+  if (!start || !end) return '—';
   const diff = new Date(end) - new Date(start);
-  return Math.max(1, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+  const days = Math.max(1, Math.round(diff / (1000 * 60 * 60 * 24)));
+  return `${days} day${days !== 1 ? 's' : ''}`;
 }
 
 export default function Bookings() {
   const [bookings, setBookings] = useState([]);
-  const [facilities, setFacilities] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [filter, setFilter] = useState('all');
 
   useEffect(() => {
-    Promise.all([
-      fetch(`${API}/api/bookings`).then(r => r.json()),
-      fetch(`${API}/api/facilities`).then(r => r.json()),
-    ])
-      .then(([bData, fData]) => {
-        if (bData.success) setBookings(bData.data);
-        else setError('Failed to load bookings.');
-
-        if (fData.success) {
-          const map = {};
-          fData.data.forEach(f => { map[f.id] = f; });
-          setFacilities(map);
-        }
+    axios.get('/api/bookings')
+      .then(({ data }) => {
+        if (data.success) setBookings(data.data);
+        else setError('Failed to load bookings');
       })
-      .catch(() => setError('Network error. Make sure the backend is running.'))
+      .catch(() => setError('Network error. Could not load bookings.'))
       .finally(() => setLoading(false));
   }, []);
 
+  const filtered = filter === 'all' ? bookings : bookings.filter(b => b.status === filter);
+
+  const counts = {
+    all: bookings.length,
+    confirmed: bookings.filter(b => b.status === 'confirmed').length,
+    pending: bookings.filter(b => b.status === 'pending').length,
+    cancelled: bookings.filter(b => b.status === 'cancelled').length,
+  };
+
   return (
-    <div style={{ minHeight: '100vh', background: '#FDF8EF' }}>
+    <div>
       {/* Header */}
-      <div style={{
-        background: 'linear-gradient(135deg, #1e3a0f 0%, #2D5016 60%, #3d6b20 100%)',
-        padding: '48px 0 40px',
-      }}>
-        <div className="container" style={{ padding: '0 20px' }}>
-          <h1 style={{ fontFamily: 'Merriweather, serif', color: '#fff', fontSize: '2rem', marginBottom: 8 }}>
-            My Bookings
+      <div style={{ background: 'linear-gradient(135deg,#1e3a0f,#2D5016,#3d6b20)', padding: '48px 0' }}>
+        <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 20px' }}>
+          <h1 style={{ fontFamily: 'Merriweather, serif', color: '#fff', fontSize: '2rem', marginBottom: 6 }}>
+            📋 Storage Bookings
           </h1>
           <p style={{ color: 'rgba(255,255,255,0.75)', fontSize: '1rem' }}>
-            View all storage bookings made through FarmStore.
+            Track all storage reservations made through FarmStore.
           </p>
         </div>
       </div>
 
-      <div className="container" style={{ padding: '36px 20px' }}>
+      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '36px 20px 60px' }}>
+        {/* Stats */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 32 }}>
+          {[
+            { label: 'Total Bookings', value: counts.all, color: '#2D5016', bg: '#E8F5E2', icon: '📋' },
+            { label: 'Confirmed', value: counts.confirmed, color: '#15803D', bg: '#DCFCE7', icon: '✅' },
+            { label: 'Pending', value: counts.pending, color: '#A16207', bg: '#FEF9C3', icon: '⏳' },
+            { label: 'Cancelled', value: counts.cancelled, color: '#B91C1C', bg: '#FEE2E2', icon: '❌' },
+          ].map(stat => (
+            <div key={stat.label} style={{
+              background: stat.bg, borderRadius: 12, padding: '18px 20px',
+              border: `1px solid ${stat.color}22`,
+            }}>
+              <div style={{ fontSize: '1.4rem', marginBottom: 6 }}>{stat.icon}</div>
+              <div style={{ fontSize: '1.8rem', fontWeight: 800, color: stat.color, lineHeight: 1 }}>{stat.value}</div>
+              <div style={{ fontSize: '0.8rem', color: '#6B7280', marginTop: 4 }}>{stat.label}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Filter tabs */}
+        <div style={{ display: 'flex', gap: 8, marginBottom: 24, flexWrap: 'wrap' }}>
+          {['all', 'confirmed', 'pending', 'cancelled'].map(f => (
+            <button
+              key={f}
+              onClick={() => setFilter(f)}
+              style={{
+                padding: '8px 18px', borderRadius: 20, fontWeight: 600, fontSize: '0.85rem',
+                cursor: 'pointer', transition: 'all 0.15s', border: 'none',
+                background: filter === f ? '#2D5016' : '#F3F4F6',
+                color: filter === f ? '#fff' : '#4B5563',
+              }}
+            >
+              {f.charAt(0).toUpperCase() + f.slice(1)} ({counts[f]})
+            </button>
+          ))}
+        </div>
+
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '60px 20px' }}>
-            <div style={{ fontSize: '3rem', marginBottom: 16 }}>🌿</div>
-            <p style={{ color: '#6B7280', fontSize: '1rem' }}>Loading bookings...</p>
+          <div style={{ display: 'grid', gap: 16 }}>
+            {[1,2,3,4].map(i => (
+              <div key={i} style={{
+                height: 120, borderRadius: 12,
+                background: 'linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%)',
+                backgroundSize: '200% 100%', animation: 'shimmer 1.5s infinite',
+              }} />
+            ))}
           </div>
         ) : error ? (
-          <div style={{
-            background: '#FEE2E2', border: '1px solid #FECACA', borderRadius: 12,
-            padding: '20px 24px', color: '#B91C1C', textAlign: 'center',
-          }}>
-            <div style={{ fontSize: '2rem', marginBottom: 10 }}>⚠️</div>
-            <p style={{ fontWeight: 600, marginBottom: 6 }}>{error}</p>
-            <p style={{ fontSize: '0.85rem' }}>Make sure the backend server is running on port 3001.</p>
+          <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+            <div style={{ fontSize: '3rem', marginBottom: 12 }}>⚠️</div>
+            <p style={{ color: '#B91C1C', fontWeight: 600 }}>{error}</p>
+            <button
+              onClick={() => window.location.reload()}
+              style={{ marginTop: 16, background: '#2D5016', color: '#fff', padding: '10px 24px', borderRadius: 8, fontWeight: 600, cursor: 'pointer', border: 'none' }}
+            >
+              Retry
+            </button>
           </div>
-        ) : bookings.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '80px 20px', background: '#FFFFFF', borderRadius: 16, border: '1px solid #E5E7EB' }}>
-            <div style={{ fontSize: '4rem', marginBottom: 16 }}>📋</div>
-            <h2 style={{ fontFamily: 'Merriweather, serif', color: '#2D5016', marginBottom: 10 }}>No Bookings Yet</h2>
-            <p style={{ color: '#6B7280', marginBottom: 28 }}>No storage bookings have been made yet. Start by finding a facility!</p>
+        ) : filtered.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '80px 20px', color: '#6B7280' }}>
+            <div style={{ fontSize: '3.5rem', marginBottom: 16 }}>📭</div>
+            <h3 style={{ fontFamily: 'Merriweather, serif', color: '#374151', marginBottom: 8 }}>
+              {filter === 'all' ? 'No bookings yet' : `No ${filter} bookings`}
+            </h3>
+            <p style={{ marginBottom: 24 }}>
+              {filter === 'all'
+                ? 'Farmers will see their storage bookings here after reserving a facility.'
+                : 'Try switching to a different filter tab.'}
+            </p>
             <Link to="/search" style={{
-              display: 'inline-flex', alignItems: 'center', gap: 8,
-              padding: '12px 28px', background: '#2D5016', color: '#FFFFFF',
-              borderRadius: 10, fontWeight: 700, textDecoration: 'none', fontSize: '1rem',
+              background: '#2D5016', color: '#fff', padding: '11px 28px', borderRadius: 8,
+              fontWeight: 700, textDecoration: 'none', display: 'inline-block',
             }}>
               🔍 Find Storage Facilities
             </Link>
           </div>
         ) : (
-          <>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-              <h2 style={{ fontFamily: 'Merriweather, serif', fontSize: '1.2rem', color: '#1A1A1A' }}>
-                {bookings.length} Booking{bookings.length !== 1 ? 's' : ''} Total
-              </h2>
-              <Link to="/search" style={{
-                display: 'inline-flex', alignItems: 'center', gap: 6,
-                padding: '9px 18px', background: '#2D5016', color: '#FFFFFF',
-                borderRadius: 8, fontWeight: 600, fontSize: '0.88rem', textDecoration: 'none',
-              }}>
-                + New Booking
-              </Link>
-            </div>
-
-            {/* Desktop Table */}
-            <div style={{
-              background: '#FFFFFF', borderRadius: 16, overflow: 'hidden',
-              boxShadow: '0 4px 16px rgba(0,0,0,0.08)', border: '1px solid #E5E7EB',
-              display: 'none',
-            }} className="bookings-table">
-            </div>
-
-            {/* Mobile/Responsive Cards */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              {bookings.map(booking => {
-                const facility = facilities[booking.facility_id];
-                const statusStyle = STATUS_STYLES[booking.status] || STATUS_STYLES.confirmed;
-                const days = getDurationDays(booking.start_date, booking.end_date);
-
-                return (
-                  <div key={booking.id} style={{
-                    background: '#FFFFFF', borderRadius: 16, overflow: 'hidden',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.06)', border: '1px solid #E5E7EB',
-                    transition: 'box-shadow 0.2s ease',
-                  }}>
-                    {/* Card Header */}
-                    <div style={{
-                      background: 'linear-gradient(135deg, #2D5016, #3d6b20)',
-                      padding: '16px 20px',
-                      display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 10,
-                    }}>
-                      <div>
-                        <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.65)', fontWeight: 600, letterSpacing: '0.5px', marginBottom: 4 }}>
-                          BOOKING ID
-                        </div>
-                        <div style={{ color: '#F5C842', fontFamily: 'monospace', fontSize: '0.9rem', fontWeight: 700 }}>
-                          {booking.id}
-                        </div>
-                      </div>
-                      <span style={{
-                        display: 'inline-flex', alignItems: 'center',
-                        padding: '5px 14px', borderRadius: 20,
-                        fontSize: '0.78rem', fontWeight: 700,
-                        background: statusStyle.bg, color: statusStyle.color,
-                      }}>
-                        {statusStyle.label}
-                      </span>
-                    </div>
-
-                    {/* Card Body */}
-                    <div style={{ padding: '20px 22px' }}>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 20 }}>
-
-                        {/* Facility Info */}
-                        <div>
-                          <div style={{ fontSize: '0.72rem', color: '#9CA3AF', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>Facility</div>
-                          {facility ? (
-                            <>
-                              <Link to={`/facilities/${facility.id}`} style={{
-                                fontWeight: 700, color: '#2D5016', fontSize: '1rem',
-                                textDecoration: 'none', display: 'block', marginBottom: 3,
-                              }}>
-                                {facility.facility_name}
-                              </Link>
-                              <div style={{ fontSize: '0.82rem', color: '#6B7280' }}>📍 {facility.location}</div>
-                              <div style={{ fontSize: '0.82rem', color: '#6B7280' }}>👤 {facility.owner_name}</div>
-                            </>
-                          ) : (
-                            <span style={{ color: '#9CA3AF', fontSize: '0.88rem' }}>Facility #{booking.facility_id}</span>
-                          )}
-                        </div>
-
-                        {/* Farmer Info */}
-                        <div>
-                          <div style={{ fontSize: '0.72rem', color: '#9CA3AF', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>Farmer</div>
-                          <div style={{ fontWeight: 700, color: '#1A1A1A', marginBottom: 3 }}>{booking.farmer_name}</div>
-                          <div style={{ fontSize: '0.82rem', color: '#6B7280' }}>📞 {booking.farmer_phone}</div>
-                        </div>
-
-                        {/* Produce & Quantity */}
-                        <div>
-                          <div style={{ fontSize: '0.72rem', color: '#9CA3AF', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>Produce</div>
-                          <div style={{ fontWeight: 700, color: '#1A1A1A', marginBottom: 3 }}>{booking.produce_type}</div>
-                          <div style={{ fontSize: '0.82rem', color: '#6B7280' }}>🌾 {booking.quantity_tons} tons</div>
-                        </div>
-
-                        {/* Dates */}
-                        <div>
-                          <div style={{ fontSize: '0.72rem', color: '#9CA3AF', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>Storage Period</div>
-                          <div style={{ fontWeight: 600, color: '#1A1A1A', fontSize: '0.9rem', marginBottom: 3 }}>
-                            {formatDate(booking.start_date)} → {formatDate(booking.end_date)}
-                          </div>
-                          <div style={{
-                            display: 'inline-flex', alignItems: 'center',
-                            padding: '3px 10px', borderRadius: 20,
-                            fontSize: '0.75rem', fontWeight: 600,
-                            background: '#E8F5E2', color: '#2D5016',
-                          }}>
-                            📅 {days} day{days !== 1 ? 's' : ''}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Footer row */}
-                      <div style={{
-                        marginTop: 16, paddingTop: 14, borderTop: '1px solid #F3F4F6',
-                        display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10,
-                      }}>
-                        <div style={{ fontSize: '0.78rem', color: '#9CA3AF' }}>
-                          Booked on {formatDate(booking.created_at)}
-                        </div>
-                        {facility && (
-                          <Link to={`/facilities/${facility.id}`} style={{
-                            display: 'inline-flex', alignItems: 'center', gap: 6,
-                            padding: '7px 16px', border: '1.5px solid #2D5016',
-                            borderRadius: 8, color: '#2D5016', fontWeight: 600,
-                            fontSize: '0.82rem', textDecoration: 'none',
-                            transition: 'all 0.15s ease',
-                          }}>
-                            View Facility →
-                          </Link>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </>
+          <div style={{ display: 'grid', gap: 16 }}>
+            {filtered.map(booking => (
+              <BookingCard key={booking.id} booking={booking} />
+            ))}
+          </div>
         )}
+      </div>
+
+      <style>{`
+        @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+        @media(max-width:640px){
+          .booking-grid { grid-template-columns: 1fr !important; }
+          .stats-grid { grid-template-columns: 1fr 1fr !important; }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+function BookingCard({ booking }) {
+  const [facility, setFacility] = useState(null);
+
+  useEffect(() => {
+    if (booking.facility_id) {
+      axios.get(`/api/facilities/${booking.facility_id}`)
+        .then(({ data }) => { if (data.success) setFacility(data.data); })
+        .catch(() => {});
+    }
+  }, [booking.facility_id]);
+
+  return (
+    <div style={{
+      background: '#FFFFFF',
+      borderRadius: 14,
+      border: '1px solid #E5E7EB',
+      boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+      overflow: 'hidden',
+      transition: 'box-shadow 0.2s',
+    }}
+      onMouseEnter={e => e.currentTarget.style.boxShadow = '0 6px 20px rgba(45,80,22,0.12)'}
+      onMouseLeave={e => e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.06)'}
+    >
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: '3fr 1.5fr 1.5fr 1.5fr auto',
+        gap: 0,
+        alignItems: 'stretch',
+      }}
+        className="booking-grid"
+      >
+        {/* Farmer + Facility Info */}
+        <div style={{ padding: '20px 24px', borderRight: '1px solid #F3F4F6' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+            <div style={{ width: 40, height: 40, borderRadius: 10, background: 'linear-gradient(135deg,#2D5016,#3d6b20)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem', flexShrink: 0 }}>
+              👤
+            </div>
+            <div>
+              <div style={{ fontWeight: 700, color: '#1A1A1A', fontSize: '0.95rem' }}>{booking.farmer_name}</div>
+              <div style={{ fontSize: '0.8rem', color: '#6B7280' }}>📞 {booking.farmer_phone}</div>
+            </div>
+          </div>
+          {facility && (
+            <Link to={`/facilities/${booking.facility_id}`} style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              fontSize: '0.82rem', color: '#2D5016', fontWeight: 600,
+              background: '#E8F5E2', padding: '4px 10px', borderRadius: 6, textDecoration: 'none',
+            }}>
+              🏭 {facility.facility_name}
+              {facility.county && <span style={{ color: '#8B6914', fontWeight: 400 }}>· {facility.county}</span>}
+            </Link>
+          )}
+          <div style={{ fontSize: '0.78rem', color: '#9CA3AF', marginTop: 6 }}>
+            Booking ID: {booking.id.substring(0, 8)}...
+          </div>
+        </div>
+
+        {/* Produce */}
+        <div style={{ padding: '20px 16px', borderRight: '1px solid #F3F4F6', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+          <div style={{ fontSize: '0.72rem', color: '#9CA3AF', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>Produce</div>
+          <div style={{ fontWeight: 700, color: '#1A1A1A', fontSize: '0.92rem' }}>{booking.produce_type}</div>
+          <div style={{ fontSize: '0.82rem', color: '#6B7280', marginTop: 2 }}>{booking.quantity_tons} tons</div>
+        </div>
+
+        {/* Dates */}
+        <div style={{ padding: '20px 16px', borderRight: '1px solid #F3F4F6', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+          <div style={{ fontSize: '0.72rem', color: '#9CA3AF', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>Storage Period</div>
+          <div style={{ fontSize: '0.85rem', color: '#1A1A1A', fontWeight: 600 }}>{formatDate(booking.start_date)}</div>
+          <div style={{ fontSize: '0.75rem', color: '#9CA3AF' }}>to</div>
+          <div style={{ fontSize: '0.85rem', color: '#1A1A1A', fontWeight: 600 }}>{formatDate(booking.end_date)}</div>
+          <div style={{ fontSize: '0.75rem', color: '#6B7280', marginTop: 3 }}>{getDays(booking.start_date, booking.end_date)}</div>
+        </div>
+
+        {/* Booked on */}
+        <div style={{ padding: '20px 16px', borderRight: '1px solid #F3F4F6', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+          <div style={{ fontSize: '0.72rem', color: '#9CA3AF', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>Booked On</div>
+          <div style={{ fontSize: '0.85rem', color: '#4B5563' }}>{formatDate(booking.created_at)}</div>
+        </div>
+
+        {/* Status */}
+        <div style={{ padding: '20px 20px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <StatusBadge status={booking.status} />
+        </div>
       </div>
     </div>
   );

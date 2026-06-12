@@ -1,6 +1,78 @@
-# FarmStore — Kenya's Farm Storage Marketplace
+# FarmStore - Kenya's Farm Storage Marketplace
 
-FarmStore connects Kenyan farmers with reliable storage facility owners across the country. Built with React + Vite on the frontend and Node.js + Express + SQLite on the backend.
+A full-stack web application connecting Kenyan farmers with storage facility owners. Farmers can search for and book storage space; facility owners can list their warehouses.
+
+## Tech Stack
+
+- **Frontend:** React 18, Vite, React Router v6, Axios
+- **Backend:** Node.js, Express 4, better-sqlite3, UUID, CORS
+
+---
+
+## Setup & Running
+
+### Backend
+
+```bash
+cd backend
+npm install
+npm start
+```
+
+The backend API runs on **http://localhost:3001**.
+
+On first start, the SQLite database (`farmstore.db`) is created automatically and seeded with 8 realistic Kenyan storage facilities.
+
+For development with auto-reload:
+```bash
+npm install -g nodemon
+npm run dev
+```
+
+### Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+The frontend dev server runs on **http://localhost:5173**.
+
+API calls are proxied through Vite to `http://localhost:3001`, so both servers must be running.
+
+---
+
+## API Endpoints
+
+### Facilities
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/facilities` | List all facilities (supports `?county=`, `?produce_type=`, `?min_space=`) |
+| GET | `/api/facilities/:id` | Get a single facility |
+| POST | `/api/facilities` | Create a new facility listing |
+| PUT | `/api/facilities/:id/space` | Update available space |
+
+### Bookings
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/bookings` | List all bookings |
+| GET | `/api/bookings/:id` | Get a single booking |
+| POST | `/api/bookings` | Create a booking (auto-updates facility space) |
+
+---
+
+## Pages
+
+| Route | Description |
+|-------|-------------|
+| `/` | Home/Landing page with hero, stats, and featured facilities |
+| `/search` | Search and filter storage facilities |
+| `/facilities/:id` | Facility detail page with booking form |
+| `/list` | Register a new storage facility |
+| `/bookings` | View all storage bookings |
 
 ---
 
@@ -8,157 +80,29 @@ FarmStore connects Kenyan farmers with reliable storage facility owners across t
 
 ```
 farmstore/
-├── backend/          Node.js + Express + SQLite API
+├── backend/
 │   ├── db/
-│   │   └── schema.js       Database initialization & seed data
+│   │   └── schema.js        # SQLite init + seed data
 │   ├── routes/
-│   │   ├── facilities.js   Facilities API routes
-│   │   └── bookings.js     Bookings API routes
-│   ├── server.js           Express app entry point
+│   │   ├── facilities.js    # Facility CRUD routes
+│   │   └── bookings.js      # Booking routes
+│   ├── server.js            # Express app entry point
 │   └── package.json
-├── frontend/         React 18 + Vite SPA
-│   ├── src/
-│   │   ├── components/
-│   │   │   ├── Navbar.jsx
-│   │   │   └── FacilityCard.jsx
-│   │   ├── pages/
-│   │   │   ├── Home.jsx
-│   │   │   ├── Search.jsx
-│   │   │   ├── FacilityDetail.jsx
-│   │   │   ├── ListFacility.jsx
-│   │   │   └── Bookings.jsx
-│   │   ├── App.jsx
-│   │   ├── main.jsx
-│   │   └── index.css
-│   ├── index.html
-│   ├── vite.config.js
-│   └── package.json
-└── README.md
+└── frontend/
+    ├── src/
+    │   ├── components/
+    │   │   ├── Navbar.jsx
+    │   │   └── FacilityCard.jsx
+    │   ├── pages/
+    │   │   ├── Home.jsx
+    │   │   ├── Search.jsx
+    │   │   ├── FacilityDetail.jsx
+    │   │   ├── ListFacility.jsx
+    │   │   └── Bookings.jsx
+    │   ├── App.jsx
+    │   ├── main.jsx
+    │   └── index.css
+    ├── index.html
+    ├── vite.config.js
+    └── package.json
 ```
-
----
-
-## Prerequisites
-
-- **Node.js** v18 or later
-- **npm** v9 or later
-
----
-
-## Backend Setup
-
-```bash
-cd farmstore/backend
-npm install
-npm start
-```
-
-The backend runs on **http://localhost:3001**.
-
-On first start, it automatically creates `farmstore.db` and seeds **8 realistic Kenyan storage facilities**.
-
-### Available API Endpoints
-
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/api/health` | Health check |
-| GET | `/api/facilities` | List facilities (supports `?county=`, `?produce_type=`, `?min_space=`) |
-| GET | `/api/facilities/:id` | Single facility |
-| POST | `/api/facilities` | Create new listing |
-| PUT | `/api/facilities/:id/space` | Update available space |
-| GET | `/api/bookings` | List all bookings |
-| GET | `/api/bookings/:id` | Single booking |
-| POST | `/api/bookings` | Create booking (auto-updates facility space) |
-
-### Example: Create a Booking
-
-```bash
-curl -X POST http://localhost:3001/api/bookings \
-  -H "Content-Type: application/json" \
-  -d '{
-    "farmer_name": "John Mwangi",
-    "farmer_phone": "+254 712 345 678",
-    "facility_id": "fac-001",
-    "produce_type": "Maize",
-    "quantity_tons": 50,
-    "start_date": "2024-03-01",
-    "end_date": "2024-03-31"
-  }'
-```
-
----
-
-## Frontend Setup
-
-```bash
-cd farmstore/frontend
-npm install
-npm run dev
-```
-
-The frontend runs on **http://localhost:5173** and proxies `/api` requests to the backend.
-
-### Pages
-
-| Route | Page |
-|-------|------|
-| `/` | Home / Landing page |
-| `/search` | Search & filter storage facilities |
-| `/facilities/:id` | Facility detail + booking form |
-| `/list` | Register a new storage facility |
-| `/bookings` | View all bookings |
-
----
-
-## Running Both Together
-
-Open two terminal windows:
-
-**Terminal 1 — Backend:**
-```bash
-cd farmstore/backend && npm install && npm start
-```
-
-**Terminal 2 — Frontend:**
-```bash
-cd farmstore/frontend && npm install && npm run dev
-```
-
-Then open **http://localhost:5173** in your browser.
-
----
-
-## Tech Stack
-
-| Layer | Technology |
-|-------|-----------|
-| Frontend | React 18, React Router v6, Vite, Axios |
-| Backend | Node.js, Express 4, better-sqlite3 |
-| Database | SQLite (farmstore.db, auto-created) |
-| Styling | Inline styles, CSS variables, Google Fonts |
-| IDs | UUID v4 |
-
----
-
-## Seed Data
-
-The database is seeded with 8 facilities across Kenya:
-
-| Facility | County | Capacity |
-|----------|--------|----------|
-| Kamau Grain Warehouse | Nairobi | 500 tons |
-| Nakuru Valley Storage | Nakuru | 800 tons |
-| Meru Highland Cold Store | Meru | 300 tons |
-| Lakeside Grain Store | Kisumu | 600 tons |
-| Eldoret Farmers Cooperative | Uasin Gishu | 1,000 tons |
-| Machakos Harvest Hub | Machakos | 400 tons |
-| Thika Blue Nile Warehouse | Kiambu | 700 tons |
-| Kitale Maize Depot | Trans-Nzoia | 1,200 tons |
-
----
-
-## Design
-
-- **Color palette:** Deep forest green `#2D5016`, golden brown `#8B6914`, harvest gold `#F5C842`, warm cream `#FDF8EF`
-- **Typography:** Merriweather (headings), Inter (body) via Google Fonts
-- **Theme:** Earthy Kenyan aesthetic — green savannahs, golden wheat fields

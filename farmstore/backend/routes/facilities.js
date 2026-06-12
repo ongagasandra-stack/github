@@ -12,6 +12,7 @@ function parseFacility(facility) {
 }
 
 // GET /api/facilities
+// Query params: county, produce_type, min_space
 router.get('/', (req, res) => {
   try {
     const { county, produce_type, min_space } = req.query;
@@ -40,9 +41,9 @@ router.get('/', (req, res) => {
       );
     }
 
-    res.json({ success: true, data: facilities });
+    res.json({ success: true, data: facilities, count: facilities.length });
   } catch (err) {
-    console.error(err);
+    console.error('GET /api/facilities error:', err);
     res.status(500).json({ success: false, error: 'Failed to fetch facilities' });
   }
 });
@@ -56,7 +57,7 @@ router.get('/:id', (req, res) => {
     }
     res.json({ success: true, data: parseFacility(facility) });
   } catch (err) {
-    console.error(err);
+    console.error('GET /api/facilities/:id error:', err);
     res.status(500).json({ success: false, error: 'Failed to fetch facility' });
   }
 });
@@ -70,12 +71,24 @@ router.post('/', (req, res) => {
       price_per_month, produce_types, description, phone, email
     } = req.body;
 
-    if (!owner_name || !facility_name || !location || !county || !capacity_tons) {
-      return res.status(400).json({ success: false, error: 'Missing required fields' });
+    if (!owner_name || !facility_name || !location || !county) {
+      return res.status(400).json({ success: false, error: 'Missing required fields: owner_name, facility_name, location, county' });
+    }
+
+    if (!capacity_tons || isNaN(parseFloat(capacity_tons))) {
+      return res.status(400).json({ success: false, error: 'capacity_tons must be a valid number' });
+    }
+
+    if (!price_per_day || !price_per_week || !price_per_month) {
+      return res.status(400).json({ success: false, error: 'All price fields are required: price_per_day, price_per_week, price_per_month' });
     }
 
     const id = uuidv4();
     const created_at = new Date().toISOString();
+    const cap = parseFloat(capacity_tons);
+    const availSpace = available_space_tons !== undefined && available_space_tons !== ''
+      ? parseFloat(available_space_tons)
+      : cap;
     const produceTypesJson = JSON.stringify(Array.isArray(produce_types) ? produce_types : []);
 
     db.prepare(`
@@ -85,23 +98,26 @@ router.post('/', (req, res) => {
          price_per_month, produce_types, description, phone, email, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
-      id, owner_name, facility_name, location, county,
+      id, owner_name.trim(), facility_name.trim(), location.trim(), county.trim(),
       latitude ? parseFloat(latitude) : null,
       longitude ? parseFloat(longitude) : null,
-      parseFloat(capacity_tons),
-      parseFloat(available_space_tons || capacity_tons),
+      cap,
+      availSpace,
       parseFloat(price_per_day),
       parseFloat(price_per_week),
       parseFloat(price_per_month),
-      produceTypesJson, description || '', phone || '', email || '',
+      produceTypesJson,
+      description ? description.trim() : '',
+      phone ? phone.trim() : '',
+      email ? email.trim() : '',
       created_at
     );
 
     const newFacility = db.prepare('SELECT * FROM storage_facilities WHERE id = ?').get(id);
     res.status(201).json({ success: true, data: parseFacility(newFacility) });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false, error: 'Failed to create facility' });
+    console.error('POST /api/facilities error:', err);
+    res.status(500).json({ success: false, error: 'Failed to create facility listing' });
   }
 });
 
@@ -109,8 +125,14 @@ router.post('/', (req, res) => {
 router.put('/:id/space', (req, res) => {
   try {
     const { available_space_tons } = req.body;
-    if (available_space_tons === undefined) {
+
+    if (available_space_tons === undefined || available_space_tons === null) {
       return res.status(400).json({ success: false, error: 'available_space_tons is required' });
+    }
+
+    const newSpace = parseFloat(available_space_tons);
+    if (isNaN(newSpace) || newSpace < 0) {
+      return res.status(400).json({ success: false, error: 'available_space_tons must be a non-negative number' });
     }
 
     const facility = db.prepare('SELECT * FROM storage_facilities WHERE id = ?').get(req.params.id);
@@ -118,14 +140,21 @@ router.put('/:id/space', (req, res) => {
       return res.status(404).json({ success: false, error: 'Facility not found' });
     }
 
+    if (newSpace > facility.capacity_tons) {
+      return res.status(400).json({
+        success: false,
+        error: `available_space_tons (${newSpace}) cannot exceed capacity_tons (${facility.capacity_tons})`
+      });
+    }
+
     db.prepare('UPDATE storage_facilities SET available_space_tons = ? WHERE id = ?')
-      .run(parseFloat(available_space_tons), req.params.id);
+      .run(newSpace, req.params.id);
 
     const updated = db.prepare('SELECT * FROM storage_facilities WHERE id = ?').get(req.params.id);
     res.json({ success: true, data: parseFacility(updated) });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false, error: 'Failed to update space' });
+    console.error('PUT /api/facilities/:id/space error:', err);
+    res.status(500).json({ success: false, error: 'Failed to update available space' });
   }
 });
 
