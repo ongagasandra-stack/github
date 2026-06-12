@@ -41,17 +41,14 @@ function initializeDatabase() {
     );
   `);
 
-  const existingCount = db.prepare('SELECT COUNT(*) as count FROM storage_facilities').get();
-  if (existingCount.count === 0) {
-    const insertFacility = db.prepare(`
+  const count = db.prepare('SELECT COUNT(*) as cnt FROM storage_facilities').get();
+  if (count.cnt === 0) {
+    const insert = db.prepare(`
       INSERT INTO storage_facilities
         (id, owner_name, facility_name, location, county, latitude, longitude,
          capacity_tons, available_space_tons, price_per_day, price_per_week,
          price_per_month, produce_types, description, phone, email, created_at)
-      VALUES
-        (@id, @owner_name, @facility_name, @location, @county, @latitude, @longitude,
-         @capacity_tons, @available_space_tons, @price_per_day, @price_per_week,
-         @price_per_month, @produce_types, @description, @phone, @email, @created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     const facilities = [
@@ -69,7 +66,7 @@ function initializeDatabase() {
         price_per_week: 15000,
         price_per_month: 50000,
         produce_types: JSON.stringify(['Vegetables', 'Fruits', 'Dairy']),
-        description: 'State-of-the-art cold storage facility in the heart of Westlands, Nairobi. Equipped with temperature control systems, 24/7 security, and easy highway access. Ideal for perishable goods requiring refrigeration.',
+        description: 'State-of-the-art cold storage facility in the heart of Nairobi\'s Westlands. Equipped with temperature control systems, 24/7 security, and easy highway access for transport.',
         phone: '+254 712 345 678',
         email: 'james.mwangi@westlandscold.co.ke',
         created_at: new Date().toISOString()
@@ -88,7 +85,7 @@ function initializeDatabase() {
         price_per_week: 11000,
         price_per_month: 38000,
         produce_types: JSON.stringify(['Maize', 'Wheat', 'Barley']),
-        description: 'Large-capacity grain storage facility serving the Rift Valley agricultural belt. Features fumigation services, moisture monitoring, and bulk handling equipment. Perfect for post-harvest cereal storage.',
+        description: 'Large grain storage facility serving the Rift Valley agricultural region. Features fumigation services, grain testing, and bulk handling equipment.',
         phone: '+254 722 456 789',
         email: 'mary.wanjiku@riftvalleygrain.co.ke',
         created_at: new Date().toISOString()
@@ -107,7 +104,7 @@ function initializeDatabase() {
         price_per_week: 13000,
         price_per_month: 42000,
         produce_types: JSON.stringify(['Coffee', 'Tea', 'Potatoes']),
-        description: 'Specialized storage hub near Mount Kenya region, designed for high-value crops. Climate-controlled sections for coffee and tea, plus dry storage for root vegetables. Certified for export-grade produce.',
+        description: 'Specialized storage hub near Mount Kenya, designed for high-value produce like coffee and tea. Maintains optimal humidity levels to preserve quality.',
         phone: '+254 733 567 890',
         email: 'peter.gitonga@mtkenyahub.co.ke',
         created_at: new Date().toISOString()
@@ -116,7 +113,7 @@ function initializeDatabase() {
         id: 'fac-004',
         owner_name: 'Grace Otieno',
         facility_name: 'Lakeside Storage Solutions',
-        location: 'Kisumu Port Area, Kisumu',
+        location: 'Milimani, Kisumu',
         county: 'Kisumu',
         latitude: -0.0917,
         longitude: 34.7680,
@@ -126,7 +123,7 @@ function initializeDatabase() {
         price_per_week: 9500,
         price_per_month: 32000,
         produce_types: JSON.stringify(['Rice', 'Vegetables', 'Fish']),
-        description: 'Strategic storage near Kisumu Port offering easy lake transport connections. Specialized fish storage with ice facilities and cold chain management. Also handles rice and general vegetable storage.',
+        description: 'Versatile storage facility near Lake Victoria. Specializes in fresh produce and fish storage with dedicated refrigerated sections and excellent port connections.',
         phone: '+254 744 678 901',
         email: 'grace.otieno@lakesidestorage.co.ke',
         created_at: new Date().toISOString()
@@ -135,7 +132,7 @@ function initializeDatabase() {
         id: 'fac-005',
         owner_name: 'Daniel Cheruiyot',
         facility_name: 'North Rift Agri-Store',
-        location: 'Eldoret Industrial Zone, Eldoret',
+        location: 'Langas, Eldoret',
         county: 'Uasin Gishu',
         latitude: 0.5143,
         longitude: 35.2698,
@@ -145,9 +142,9 @@ function initializeDatabase() {
         price_per_week: 10000,
         price_per_month: 35000,
         produce_types: JSON.stringify(['Maize', 'Wheat', 'Beans']),
-        description: 'Kenya\'s largest agri-storage facility in the breadbasket of North Rift. Modern silo systems with automated handling, pest control, and real-time inventory tracking. Serves large-scale and smallholder farmers alike.',
+        description: 'The largest grain storage facility in North Rift. Serves thousands of farmers from Uasin Gishu and Trans Nzoia counties with modern silos and drying equipment.',
         phone: '+254 755 789 012',
-        email: 'daniel.cheruiyot@northriftstore.co.ke',
+        email: 'daniel.cheruiyot@northriftagri.co.ke',
         created_at: new Date().toISOString()
       },
       {
@@ -164,7 +161,7 @@ function initializeDatabase() {
         price_per_week: 11500,
         price_per_month: 39000,
         produce_types: JSON.stringify(['Beans', 'Maize', 'Fruits']),
-        description: 'Community-focused storage facility serving Eastern Kenya smallholder farmers. Affordable rates with flexible booking terms. Specializes in legumes, cereals, and fresh fruit temporary storage.',
+        description: 'Serving Eastern Kenya farmers with quality storage solutions. Offers flexible short-term and long-term storage with competitive pricing and reliable security.',
         phone: '+254 766 890 123',
         email: 'agnes.mutua@easternharvest.co.ke',
         created_at: new Date().toISOString()
@@ -183,7 +180,7 @@ function initializeDatabase() {
         price_per_week: 14000,
         price_per_month: 47000,
         produce_types: JSON.stringify(['Coffee', 'Vegetables', 'Fruits']),
-        description: 'Premium fresh produce storage along Thika Road corridor. Purpose-built for export-quality coffee and horticultural products. Features ethylene management systems, humidity control, and quality inspection bays.',
+        description: 'Premium fresh produce storage facility along Thika Road. Strategically located for easy access to Nairobi markets, with climate-controlled chambers for fruits and vegetables.',
         phone: '+254 777 901 234',
         email: 'john.kamau@bluenilefresh.co.ke',
         created_at: new Date().toISOString()
@@ -202,7 +199,7 @@ function initializeDatabase() {
         price_per_week: 9000,
         price_per_month: 30000,
         produce_types: JSON.stringify(['Maize', 'Wheat', 'Sunflower']),
-        description: 'The premier grain hub in Trans Nzoia County, Kenya\'s top maize-producing region. Offers competitive rates for bulk grain storage, drying services, and aggregation for smallholder cooperatives.',
+        description: 'Kenya\'s breadbasket region storage hub. Trans Nzoia Grain Hub offers affordable, bulk grain storage with modern pest management and quality preservation services.',
         phone: '+254 788 012 345',
         email: 'sarah.wekesa@transnzoiagrain.co.ke',
         created_at: new Date().toISOString()
@@ -211,7 +208,13 @@ function initializeDatabase() {
 
     const insertMany = db.transaction((items) => {
       for (const item of items) {
-        insertFacility.run(item);
+        insert.run(
+          item.id, item.owner_name, item.facility_name, item.location,
+          item.county, item.latitude, item.longitude, item.capacity_tons,
+          item.available_space_tons, item.price_per_day, item.price_per_week,
+          item.price_per_month, item.produce_types, item.description,
+          item.phone, item.email, item.created_at
+        );
       }
     });
 
